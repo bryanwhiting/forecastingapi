@@ -84,7 +84,7 @@ def _forecast_nixtla_compare(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     models = [AutoARIMA(season_length=1), AutoETS(season_length=1)]
 
-    backtest_df = pd.DataFrame(columns=["window", "model", "smape", "horizon", "holdout_start", "holdout_end"])
+    backtest_df = pd.DataFrame(columns=["unique_id", "window", "model", "smape", "horizon", "holdout_start", "holdout_end"])
     if do_backtest:
         min_len = int(df.groupby("unique_id").size().min())
         max_possible_windows = max(0, (min_len // horizon) - 1)
@@ -106,22 +106,24 @@ def _forecast_nixtla_compare(
             if merged.empty:
                 continue
 
-            holdout_start = str(merged["ds"].min())
-            holdout_end = str(merged["ds"].max())
+            for uid, uid_df in merged.groupby("unique_id"):
+                holdout_start = str(uid_df["ds"].min())
+                holdout_end = str(uid_df["ds"].max())
 
-            for model_name in MODEL_NAMES:
-                if model_name in merged.columns:
-                    score = _smape(merged["y"].to_numpy(dtype=float), merged[model_name].to_numpy(dtype=float))
-                    scores.append(
-                        {
-                            "window": w + 1,
-                            "model": model_name,
-                            "smape": round(score, 4),
-                            "horizon": horizon,
-                            "holdout_start": holdout_start,
-                            "holdout_end": holdout_end,
-                        }
-                    )
+                for model_name in MODEL_NAMES:
+                    if model_name in uid_df.columns:
+                        score = _smape(uid_df["y"].to_numpy(dtype=float), uid_df[model_name].to_numpy(dtype=float))
+                        scores.append(
+                            {
+                                "unique_id": uid,
+                                "window": w + 1,
+                                "model": model_name,
+                                "smape": round(score, 4),
+                                "horizon": horizon,
+                                "holdout_start": holdout_start,
+                                "holdout_end": holdout_end,
+                            }
+                        )
         backtest_df = pd.DataFrame(scores)
 
     sf = StatsForecast(models=models, freq=freq, n_jobs=1)
