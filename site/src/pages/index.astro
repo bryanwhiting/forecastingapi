@@ -34,6 +34,39 @@ const defaultPayload = JSON.stringify({
 }, null, 2);
 ---
 <MainLayout title="ForecastingAPI.com">
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(56,189,248,.35); opacity: .95; }
+      50% { box-shadow: 0 0 0 10px rgba(56,189,248,0); opacity: 1; }
+    }
+    @keyframes popIn {
+      0% { transform: translateY(6px) scale(.98); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .status-anim-start {
+      animation: popIn .25s ease-out, pulseGlow 1.5s ease-in-out infinite;
+      border: 1px solid rgba(56,189,248,.35);
+      border-radius: .5rem;
+      padding: .4rem .55rem;
+      background: rgba(15,23,42,.5);
+      display: inline-block;
+    }
+    .status-anim-finish {
+      animation: popIn .25s ease-out;
+      border: 1px solid rgba(16,185,129,.4);
+      border-radius: .5rem;
+      padding: .4rem .55rem;
+      background:
+        linear-gradient(90deg, rgba(16,185,129,.18), rgba(52,211,153,.08), rgba(16,185,129,.18));
+      background-size: 220% 100%;
+      animation: popIn .25s ease-out, shimmer 1.8s linear 1;
+      display: inline-block;
+    }
+  </style>
   <Navbar />
   <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
     <div id="weather-parallax" class="absolute inset-0 opacity-40">
@@ -329,7 +362,7 @@ const defaultPayload = JSON.stringify({
             upsertRun({ slug, status: rj.status, conclusion: rj.conclusion, html_url: rj.html_url, actions_url: actionsUrl, updated_at: rj.updated_at });
             if (rj.status === 'completed') {
               if (rj.conclusion === 'success') {
-                statusEl.innerHTML = `✅ Your forecast is ready: <a href="/forecasts/${slug}" class="text-emerald-300 underline">/forecasts/${slug}</a>, or refresh this browser`;
+                statusEl.innerHTML = `<span class="status-anim-finish">✅ Your forecast is ready: <a href="/forecasts/${slug}" class="text-emerald-200 underline">/forecasts/${slug}</a>, or refresh this browser</span>`;
               }
               clearInterval(timer);
               activeTimers.delete(slug);
@@ -380,7 +413,7 @@ const defaultPayload = JSON.stringify({
 
     btn?.addEventListener('click', async () => {
       try {
-        statusEl.textContent = 'Submitting...';
+        statusEl.innerHTML = '<span class="status-anim-start">⚡ Forecast starting… dispatching job</span>';
         btn.disabled = true;
         const use_m5 = document.getElementById('use_m5').value === 'true';
         const payloadRaw = document.getElementById('payload').value;
@@ -416,7 +449,7 @@ const defaultPayload = JSON.stringify({
         const statusUrl = json?.status_url || `/api/run-status?slug=${encodeURIComponent(json?.slug || '')}`;
         const slug = json?.slug || 'run';
 
-        statusEl.innerHTML = `✅ Dispatched as <code>${slug}</code> · <a href="${link}" target="_blank" rel="noreferrer" class="text-sky-300 underline">View GitHub Action</a>`;
+        statusEl.innerHTML = `<span class="status-anim-start">⚡ Dispatched as <code>${slug}</code> · <a href="${link}" target="_blank" rel="noreferrer" class="text-sky-300 underline">View GitHub Action</a></span>`;
 
         upsertRun({ slug, status: 'queued', actions_url: link, status_url: statusUrl });
         pollRun(slug, statusUrl, link);
