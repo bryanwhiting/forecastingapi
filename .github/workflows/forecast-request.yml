@@ -59,14 +59,28 @@ jobs:
             --m5-series-count "${{ inputs.m5_series_count }}" \
             --backtest-windows "${{ inputs.backtest_windows }}"
 
-      - name: Commit output
+      - name: Commit output (retry-safe for concurrent runs)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add site/src/data/forecasts
           git commit -m "Add forecast ${{ inputs.slug }}" || echo "No changes"
-          git pull --rebase origin main
-          git push
+
+          # Concurrent workflow runs can race on push. Retry with rebase.
+          for i in 1 2 3 4 5; do
+            echo "Push attempt $i..."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; }
+            if git push origin HEAD:main; then
+              echo "Push succeeded on attempt $i"
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "Push failed after 5 attempts"
+              exit 1
+            fi
+            sleep $((RANDOM % 5 + 2))
+          done
 
       - name: Setup Node for site build
         uses: actions/setup-node@v4
