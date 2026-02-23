@@ -60,6 +60,9 @@ const defaultPayload = JSON.stringify({
 
       .form-grid { display: grid; gap: .6rem; }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+      .tabs { display: flex; gap: .5rem; margin-top: .2rem; }
+      .tab { flex: 1; border: 1px solid #2c3a61; background: #0f1730; color: #cfe0ff; border-radius: 10px; padding: .6rem .7rem; text-align: center; cursor: pointer; }
+      .tab.active { background: #1c2a4d; border-color: #4a65a1; color: #fff; font-weight: 600; }
       label { font-size: .85rem; color: #b7c5e2; display: block; margin-bottom: .2rem; }
       input, textarea, select { width: 100%; max-width: 100%; border: 1px solid #2c3a61; background: #0f1730; color: #eaf1ff; border-radius: 10px; padding: .62rem .7rem; font: inherit; }
       textarea { min-height: 150px; line-height: 1.35; overflow-wrap: anywhere; }
@@ -92,29 +95,23 @@ const defaultPayload = JSON.stringify({
         <h2>Submit Forecast Run</h2>
         <p class="muted">This sends a <code>workflow_dispatch</code> POST to GitHub Actions for <code>forecast-request.yml</code>.</p>
         <div class="form-grid">
-          <div class="row">
-            <div>
-              <label for="repo">Repo (owner/name)</label>
-              <input id="repo" value="bryanwhiting/weatherman" />
-            </div>
-            <div>
-              <label for="slug">Slug</label>
-              <input id="slug" placeholder="my-forecast-run" />
-            </div>
+          <div>
+            <label for="slug">Slug</label>
+            <input id="slug" placeholder="my-forecast-run" />
           </div>
 
-          <div class="row">
-            <div>
-              <label for="use_m5">Dataset</label>
-              <select id="use_m5">
-                <option value="false">Custom payload</option>
-                <option value="true">M5 sample</option>
-              </select>
+          <div>
+            <label>Supply a payload, or run a test</label>
+            <div class="tabs">
+              <button type="button" class="tab active" id="tab-payload">Supply payload</button>
+              <button type="button" class="tab" id="tab-test">Run M5 test</button>
             </div>
-            <div>
-              <label for="m5_series_count">M5 series count</label>
-              <input id="m5_series_count" type="number" value="3" min="1" max="20" />
-            </div>
+            <input id="use_m5" type="hidden" value="false" />
+          </div>
+
+          <div>
+            <label for="m5_series_count">M5 series count (test mode)</label>
+            <input id="m5_series_count" type="number" value="3" min="1" max="20" />
           </div>
 
           <div>
@@ -185,28 +182,42 @@ const defaultPayload = JSON.stringify({
     <script type="module">
       const statusEl = document.getElementById('status');
       const btn = document.getElementById('submit-btn');
+      const payloadTab = document.getElementById('tab-payload');
+      const testTab = document.getElementById('tab-test');
+      const useM5Input = document.getElementById('use_m5');
+      const payloadInput = document.getElementById('payload');
+
+      const setMode = (useM5) => {
+        useM5Input.value = String(useM5);
+        payloadTab.classList.toggle('active', !useM5);
+        testTab.classList.toggle('active', useM5);
+        payloadInput.disabled = useM5;
+        payloadInput.style.opacity = useM5 ? '0.55' : '1';
+      };
+
+      payloadTab?.addEventListener('click', () => setMode(false));
+      testTab?.addEventListener('click', () => setMode(true));
 
       btn?.addEventListener('click', async () => {
         try {
           statusEl.textContent = 'Submitting...';
           btn.disabled = true;
 
-          const repo = document.getElementById('repo').value.trim();
           const slug = document.getElementById('slug').value.trim();
           const use_m5 = document.getElementById('use_m5').value === 'true';
           const m5_series_count = document.getElementById('m5_series_count').value;
           const backtest_windows = document.getElementById('backtest_windows').value;
           const payloadRaw = document.getElementById('payload').value;
 
-          if (!repo || !slug) throw new Error('repo and slug are required');
-          JSON.parse(payloadRaw); // validate
+          if (!slug) throw new Error('slug is required');
+          if (!use_m5) JSON.parse(payloadRaw); // validate only when payload mode
 
           const body = {
-            repo,
+            repo: 'bryanwhiting/weatherman',
             slug,
             use_m5,
             m5_series_count: Number(m5_series_count),
-            payload: payloadRaw,
+            payload: use_m5 ? '{}' : payloadRaw,
             backtest_windows: Number(backtest_windows),
           };
 
