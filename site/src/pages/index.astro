@@ -171,7 +171,38 @@ const defaultPayload = JSON.stringify({
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error || `Request failed (${res.status})`);
         const link = json?.actions_url || 'https://github.com/bryanwhiting/weatherman/actions/workflows/forecast-request.yml';
-        statusEl.innerHTML = `✅ Dispatched as <code>${json?.slug || 'run'}</code><br/><a href="${link}" target="_blank" rel="noreferrer" class="text-sky-300 underline">View GitHub Action</a>`;
+        const statusUrl = json?.status_url || `/api/run-status?slug=${encodeURIComponent(json?.slug || '')}`;
+        statusEl.innerHTML = `✅ Dispatched as <code>${json?.slug || 'run'}</code><br/><a href="${link}" target="_blank" rel="noreferrer" class="text-sky-300 underline">View GitHub Action</a><br/><span id="run-live-status" class="text-slate-300">Status: queued…</span>`;
+
+        const liveEl = document.getElementById('run-live-status');
+        let tries = 0;
+        const maxTries = 40; // ~4 minutes
+        const timer = setInterval(async () => {
+          tries += 1;
+          try {
+            const rs = await fetch(statusUrl);
+            const rj = await rs.json();
+            if (!rj?.found) {
+              if (liveEl) liveEl.textContent = `Status: locating run…`;
+            } else {
+              const st = rj.status;
+              const conc = rj.conclusion;
+              const runLink = rj.html_url || link;
+              if (st === 'completed') {
+                if (liveEl) {
+                  const emoji = conc === 'success' ? '✅' : '❌';
+                  liveEl.innerHTML = `${emoji} Status: ${conc || 'completed'} · <a href="${runLink}" target="_blank" rel="noreferrer" class="text-sky-300 underline">run details</a>`;
+                }
+                clearInterval(timer);
+              } else {
+                if (liveEl) liveEl.innerHTML = `Status: ${st}… · <a href="${runLink}" target="_blank" rel="noreferrer" class="text-sky-300 underline">open</a>`;
+              }
+            }
+          } catch {
+            if (liveEl) liveEl.textContent = 'Status: polling failed (will retry)…';
+          }
+          if (tries >= maxTries) clearInterval(timer);
+        }, 6000);
       } catch (err) {
         statusEl.textContent = `❌ ${err.message}`;
       } finally {

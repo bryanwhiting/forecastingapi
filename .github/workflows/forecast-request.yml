@@ -1,4 +1,5 @@
 name: Forecast Request
+run-name: Forecast • ${{ inputs.slug }}
 
 on:
   workflow_dispatch:
