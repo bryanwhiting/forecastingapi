@@ -28,6 +28,7 @@ class ForecastResult:
     forecast: pd.DataFrame
     backend: str
     backtest: pd.DataFrame
+    backtest_points: pd.DataFrame
 
 
 def _smape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -81,16 +82,18 @@ def _forecast_nixtla_compare(
     freq: str,
     do_backtest: bool,
     backtest_windows: int,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     models = [AutoARIMA(season_length=1), AutoETS(season_length=1)]
 
     backtest_df = pd.DataFrame(columns=["unique_id", "window", "model", "smape", "horizon", "holdout_start", "holdout_end"])
+    backtest_points_df = pd.DataFrame(columns=["unique_id", "window", "model", "ds", "y", "yhat"])
     if do_backtest:
         min_len = int(df.groupby("unique_id").size().min())
         max_possible_windows = max(0, (min_len // horizon) - 1)
         windows = max(1, min(backtest_windows, max_possible_windows)) if max_possible_windows > 0 else 0
 
         scores = []
+        backtest_points = []
         for w in range(windows):
             # Rolling holdout from older to newer windows
             offset = horizon * (windows - w)
@@ -124,14 +127,26 @@ def _forecast_nixtla_compare(
                                 "holdout_end": holdout_end,
                             }
                         )
+                        for _, r in uid_df.iterrows():
+                            backtest_points.append(
+                                {
+                                    "unique_id": uid,
+                                    "window": w + 1,
+                                    "model": model_name,
+                                    "ds": r["ds"],
+                                    "y": float(r["y"]),
+                                    "yhat": float(r[model_name]),
+                                }
+                            )
         backtest_df = pd.DataFrame(scores)
+        backtest_points_df = pd.DataFrame(backtest_points)
 
     sf = StatsForecast(models=models, freq=freq, n_jobs=1)
     fcst = sf.forecast(df=df, h=horizon)
 
     cols = [c for c in MODEL_NAMES if c in fcst.columns]
     long_fcst = fcst.melt(id_vars=["unique_id", "ds"], value_vars=cols, var_name="model", value_name="yhat")
-    return long_fcst, backtest_df
+    return long_fcst, backtest_df, backtest_points_df
 
 
 def _forecast_autogluon(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
@@ -169,8 +184,9 @@ def forecast_from_request(req: ForecastRequest) -> ForecastResult:
     if backend == "autogluon":
         forecast = _forecast_autogluon(history, req.horizon)
         backtest = pd.DataFrame(columns=["model", "smape", "horizon"])
+        backtest_points = pd.DataFrame(columns=["unique_id", "window", "model", "ds", "y", "yhat"])
     else:
-        forecast, backtest = _forecast_nixtla_compare(
+        forecast, backtest, backtest_points = _forecast_nixtla_compare(
             history,
             req.horizon,
             freq,
@@ -179,4 +195,4 @@ def forecast_from_request(req: ForecastRequest) -> ForecastResult:
         )
         backend = "nixtla"
 
-    return ForecastResult(history=history, forecast=forecast, backend=backend, backtest=backtest)
+    return ForecastResult(history=history, forecast=forecast, backend=backend, backtest=backtest, backtest_points=backtest_points)

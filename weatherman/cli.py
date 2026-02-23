@@ -29,6 +29,7 @@ def main() -> None:
         "history": result.history.to_dict(orient="records"),
         "forecast": result.forecast.to_dict(orient="records"),
         "backtest": result.backtest.to_dict(orient="records"),
+        "backtest_points": result.backtest_points.to_dict(orient="records"),
     }
     _save_payload(Path(args.output), payload)
 

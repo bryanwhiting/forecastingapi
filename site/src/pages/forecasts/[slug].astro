@@ -20,6 +20,7 @@ export async function getStaticPaths() {
     history: z.array(z.any()).default([]),
     forecast: z.array(z.any()).default([]),
     backtest: z.array(z.any()).default([]),
+    backtest_points: z.array(z.any()).default([]),
     meta: z.any().optional(),
   });
 
