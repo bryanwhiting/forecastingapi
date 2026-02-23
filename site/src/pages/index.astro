@@ -244,7 +244,7 @@ const version = `v0.${ymdhms}-${gitHash}`;
 
         if (useM5) {
           customPayloadCache = payloadInput.value;
-          payloadInput.value = JSON.stringify({ run_name_root: 'demo-m5-test', series_name: 'demo_mode_m5', n_series: 3, backtest_windows: 3, series: [] }, null, 2);
+          payloadInput.value = JSON.stringify({ start_datetime: '2026-01-01T00:00:00', granularity: '1d', series_name: 'demo_mode_m5', horizon: 24, model: 'nixtla', run_name_root: 'demo-m5-test', n_series: 3, backtest_windows: 3, series: [] }, null, 2);
           payloadInput.readOnly = true;
           payloadInput.style.opacity = '0.55';
         } else {
