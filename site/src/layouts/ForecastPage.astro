@@ -5,6 +5,18 @@ const forecast = data.forecast ?? [];
 const backtest = data.backtest ?? [];
 const models = [...new Set(forecast.map((r) => r.model))];
 const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.map((r) => ({ ...r, type: 'forecast' }))];
+
+const backtestLeaderboard = Object.values(
+  backtest.reduce((acc, row) => {
+    const key = row.model;
+    if (!acc[key]) acc[key] = { model: key, total: 0, count: 0 };
+    acc[key].total += Number(row.smape || 0);
+    acc[key].count += 1;
+    return acc;
+  }, {})
+)
+  .map((r) => ({ model: r.model, avgSmape: r.count ? r.total / r.count : 0, samples: r.count }))
+  .sort((a, b) => a.avgSmape - b.avgSmape);
 ---
 <html>
   <head>
@@ -14,11 +26,18 @@ const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.m
     <style>
       body { font-family: Inter, system-ui, sans-serif; padding: 24px; max-width: 1080px; margin: auto; }
       .meta { color: #666; margin-bottom: 10px; }
-      canvas { width: 100%; height: 420px; }
+      .chart-wrap { width: 100%; height: 420px; }
+      #chart { width: 100%; height: 100%; }
       pre { background:#f7f7f7; padding: 12px; border-radius: 8px; overflow:auto; }
-      table { border-collapse: collapse; width: 100%; max-width: 480px; margin: 12px 0 20px; }
+      table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; }
       th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
       th { background: #f8f8f8; }
+      .winner { color: #15803d; font-weight: 700; }
+      @media (max-width: 720px) {
+        .chart-wrap { height: 320px; }
+        table { display: block; overflow-x: auto; }
+        th, td { white-space: nowrap; }
+      }
     </style>
   </head>
   <body>
@@ -27,11 +46,11 @@ const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.m
     {data?.meta?.github?.run_url && <p class="meta"><a href={data.meta.github.run_url} target="_blank" rel="noreferrer">GitHub action run ↗</a></p>}
 
     <h2>Actual vs Forecast</h2>
-    <canvas id="chart"></canvas>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
 
     {backtest.length > 0 && (
       <>
-        <h2>Backtest (last {data.request.horizon} points holdout)</h2>
+        <h2>Backtest details (rolling windows)</h2>
         <table>
           <thead>
             <tr><th>Window</th><th>Model</th><th>SMAPE</th><th>Horizon</th><th>Holdout Range</th></tr>
@@ -43,23 +62,61 @@ const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.m
                 <td>{row.model}</td>
                 <td>{row.smape}</td>
                 <td>{row.horizon}</td>
-                <td>{new Date(row.holdout_start).toLocaleString()} → {new Date(row.holdout_end).toLocaleString()}</td>
+                <td>{new Date(String(row.holdout_start).replace(' ', 'T')).toLocaleString()} → {new Date(String(row.holdout_end).replace(' ', 'T')).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        {backtestLeaderboard.length > 0 && (
+          <>
+            <h2>Backtest leaderboard (this run)</h2>
+            <table>
+              <thead>
+                <tr><th>Rank</th><th>Model</th><th>Avg SMAPE</th><th>Samples</th></tr>
+              </thead>
+              <tbody>
+                {backtestLeaderboard.map((row, idx) => (
+                  <tr>
+                    <td>{idx + 1}</td>
+                    <td class={idx === 0 ? 'winner' : ''}>{row.model}</td>
+                    <td>{row.avgSmape.toFixed(4)}</td>
+                    <td>{row.samples}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
       </>
     )}
 
-    <h2>Request</h2>
-    <pre>{JSON.stringify(data.request, null, 2)}</pre>
+    <details>
+      <summary><h2 style="display:inline;">Payload</h2></summary>
+      <pre>{JSON.stringify(data.request, null, 2)}</pre>
+    </details>
 
     <script type="module" define:vars={{ points, models }}>
       import Chart from 'chart.js/auto';
 
-      const allLabels = [...new Set(points.map((p) => new Date(p.ds).toISOString()))].sort();
+      const parseDs = (v) => {
+        const s = String(v ?? '');
+        const normalized = s.includes('T') ? s : s.replace(' ', 'T');
+        const d = new Date(normalized);
+        return Number.isNaN(d.getTime()) ? null : d;
+      };
+
+      const keyed = points
+        .map((p) => {
+          const d = parseDs(p.ds);
+          if (!d) return null;
+          return { ...p, iso: d.toISOString() };
+        })
+        .filter(Boolean);
+
+      const allLabels = [...new Set(keyed.map((p) => p.iso))].sort();
       const labelFmt = allLabels.map((x) => new Date(x).toLocaleString());
-      const pointMap = new Map(points.map((p) => [`${new Date(p.ds).toISOString()}|${p.type}|${p.model ?? ''}`, p]));
+      const pointMap = new Map(keyed.map((p) => [`${p.iso}|${p.type}|${p.model ?? ''}`, p]));
 
       const datasets = [
         {
@@ -81,11 +138,14 @@ const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.m
         });
       });
 
-      new Chart(document.getElementById('chart'), {
-        type: 'line',
-        data: { labels: labelFmt, datasets },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      const el = document.getElementById('chart');
+      if (el) {
+        new Chart(el, {
+          type: 'line',
+          data: { labels: labelFmt, datasets },
+          options: { responsive: true, maintainAspectRatio: false },
+        });
+      }
     </script>
   </body>
 </html>
