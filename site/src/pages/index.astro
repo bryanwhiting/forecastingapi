@@ -59,13 +59,26 @@ const defaultPayload = JSON.stringify({
       .form-grid { display: grid; gap: .6rem; }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
       label { font-size: .85rem; color: #b7c5e2; display: block; margin-bottom: .2rem; }
-      input, textarea, select { width: 100%; border: 1px solid #2c3a61; background: #0f1730; color: #eaf1ff; border-radius: 8px; padding: .55rem .65rem; font: inherit; }
-      textarea { min-height: 120px; }
-      button { border: 1px solid #3f568d; background: #1c2a4d; color: #eaf1ff; border-radius: 8px; padding: .6rem .8rem; cursor: pointer; }
+      input, textarea, select { width: 100%; border: 1px solid #2c3a61; background: #0f1730; color: #eaf1ff; border-radius: 10px; padding: .62rem .7rem; font: inherit; }
+      textarea { min-height: 150px; line-height: 1.35; }
+      button { border: 1px solid #3f568d; background: #1c2a4d; color: #eaf1ff; border-radius: 10px; padding: .7rem .9rem; cursor: pointer; font-weight: 600; }
       button:hover { background: #243866; }
       .muted { color: #98abd3; font-size: .85rem; }
-      .status { margin-top: .5rem; font-size: .9rem; }
-      @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+      .status { margin-top: .5rem; font-size: .9rem; display: inline-block; }
+
+      @media (max-width: 720px) {
+        main { padding: 1rem .65rem 5.5rem; }
+        h1 { font-size: 1.7rem; }
+        .sub { font-size: .95rem; }
+        .row { grid-template-columns: 1fr; }
+        .card { padding: .8rem; border-radius: 10px; }
+        .meta { font-size: .82rem; gap: .45rem; }
+        table { font-size: .86rem; display: block; overflow-x: auto; max-width: 100%; }
+        th, td { padding: 6px 8px; white-space: nowrap; }
+        input, textarea, select { font-size: 16px; } /* prevent iOS zoom */
+        textarea { min-height: 190px; }
+        #submit-btn { width: 100%; }
+      }
     </style>
   </head>
   <body>
