@@ -92,8 +92,8 @@ const version = `v0.${ymdhms}-${gitHash}`;
       .tab.active { background: #1c2a4d; border-color: #4a65a1; color: #fff; font-weight: 600; }
       .instructions { margin: .35rem 0 .15rem; }
       .instructions > summary { cursor: pointer; color: #8cc0ff; font-size: .85rem; }
-      .instructions-body { margin-top: .45rem; border: 1px solid #2c3a61; background: #0f1730; border-radius: 10px; padding: .65rem .75rem; color: #cfe0ff; font-size: .84rem; line-height: 1.35; overflow: hidden; }
-      .instructions-body p, .instructions-body ul { margin: .5rem 0; }
+      .instructions-body { margin-top: .45rem; border: 1px solid #2c3a61; background: #0f1730; border-radius: 10px; padding: .65rem .75rem; color: #cfe0ff; font-size: .84rem; line-height: 1.35; overflow-x: auto; }
+      .instructions-body p, .instructions-body ul { margin: .5rem 0; overflow-wrap: anywhere; word-break: break-word; }
       .instructions-body table { width: 100%; max-width: 100%; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: .8rem; border-collapse: collapse; }
       .instructions-body th, .instructions-body td { white-space: nowrap; padding: 6px 8px; }
       label { font-size: .85rem; color: #b7c5e2; display: block; margin-bottom: .2rem; }
@@ -114,9 +114,11 @@ const version = `v0.${ymdhms}-${gitHash}`;
         table { font-size: .86rem; display: block; overflow-x: auto; max-width: 100%; }
         th, td { padding: 6px 8px; white-space: nowrap; }
         .instructions > summary { font-size: .8rem; }
-        .instructions-body { font-size: .78rem; padding: .55rem .6rem; }
-        .instructions-body table { font-size: .74rem; }
-        .instructions-body th, .instructions-body td { padding: 5px 7px; }
+        .instructions-body { font-size: .76rem; padding: .5rem .55rem; }
+        .instructions-body p { font-size: .9rem; line-height: 1.3; }
+        .instructions-body ul { padding-left: 1rem; }
+        .instructions-body table { font-size: .7rem; }
+        .instructions-body th, .instructions-body td { padding: 4px 6px; }
         input, textarea, select { font-size: 16px; } /* prevent iOS zoom */
         textarea { min-height: 190px; }
         #submit-btn { width: 100%; }
@@ -170,7 +172,8 @@ const version = `v0.${ymdhms}-${gitHash}`;
                     <tr><td><code>granularity</code></td><td>Custom mode</td><td>Series frequency</td><td><code>1h</code>, <code>1d</code></td></tr>
                     <tr><td><code>series_name</code></td><td>Custom mode</td><td>Name of the series (<code>demo_mode_m5</code> is reserved)</td><td><code>demand_store_1</code></td></tr>
                     <tr><td><code>horizon</code></td><td>No</td><td>Forecast periods ahead</td><td><code>24</code></td></tr>
-                    <tr><td><code>n_series</code></td><td>No</td><td>Number of series to use (for M5 sampling and optional metadata)</td><td><code>3</code></td></tr>\n                    <tr><td><code>backtest_windows</code></td><td>No</td><td>Rolling backtest window count</td><td><code>3</code></td></tr>
+                    <tr><td><code>n_series</code></td><td>No</td><td>Number of series to use (for M5 sampling and optional metadata)</td><td><code>3</code></td></tr>
+                    <tr><td><code>backtest_windows</code></td><td>No</td><td>Rolling backtest window count</td><td><code>3</code></td></tr>
                     <tr><td><code>model</code></td><td>No</td><td>Forecast backend selector</td><td><code>nixtla</code></td></tr>
                     <tr><td><code>series</code></td><td>Custom mode</td><td>Numeric values in order (no gaps implied)</td><td><code>[100,102,99,...]</code></td></tr>
                   </tbody>
