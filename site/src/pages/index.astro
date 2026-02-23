@@ -18,21 +18,6 @@ const runs = forecastData
   }))
   .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
-const allBacktests = forecastData.flatMap((data: any) => data.backtest ?? []);
-
-const leaderboardMap = new Map<string, { total: number; count: number }>();
-for (const row of allBacktests) {
-  const model = row.model;
-  const smape = Number(row.smape);
-  if (!model || Number.isNaN(smape)) continue;
-  const current = leaderboardMap.get(model) ?? { total: 0, count: 0 };
-  leaderboardMap.set(model, { total: current.total + smape, count: current.count + 1 });
-}
-
-const leaderboard = Array.from(leaderboardMap.entries())
-  .map(([model, stats]) => ({ model, avgSmape: stats.total / stats.count, samples: stats.count }))
-  .sort((a, b) => a.avgSmape - b.avgSmape);
-
 
 const defaultPayload = JSON.stringify({
   start_datetime: '2026-01-01T00:00:00',
@@ -106,30 +91,16 @@ const defaultPayload = JSON.stringify({
       </div>
     </div>
   </section>
-
-  {leaderboard.length > 0 && (
-    <section class="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-4 overflow-x-auto">
-      <h2 class="text-lg font-semibold mb-2">Leaderboard (avg SMAPE)</h2>
-      <table class="min-w-[420px] text-sm w-full">
-        <thead><tr class="text-slate-300"><th class="text-left p-2">Rank</th><th class="text-left p-2">Model</th><th class="text-left p-2">Avg SMAPE</th><th class="text-left p-2">Samples</th></tr></thead>
-        <tbody>
-          {leaderboard.map((row, idx) => (
-            <tr>
-              <td class="p-2">{idx + 1}</td><td class={`p-2 ${idx===0?'text-emerald-400 font-semibold':''}`}>{row.model}</td><td class="p-2">{row.avgSmape.toFixed(4)}</td><td class="p-2">{row.samples}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
-  )}
-
-  <section class="mt-4 grid gap-3">
-    {runs.map((run) => (
-      <article class="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
-        <h3 class="font-semibold text-sky-300"><a href={run.path}>{run.slug ?? run.title}</a></h3>
-        <p class="text-sm text-slate-400 mt-1">{run.backend} · {run.granularity} · horizon {run.horizon} · history {run.history_points} · forecast {run.forecast_points}</p>
-      </article>
-    ))}
+  <section class="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-4">
+    <h2 class="text-lg font-semibold mb-3">All Runs</h2>
+    <div class="grid gap-3">
+      {runs.map((run) => (
+        <article class="rounded-xl border border-slate-700 bg-slate-900/50 p-4">
+          <h3 class="font-semibold text-sky-300"><a href={run.path}>{run.slug ?? run.title}</a></h3>
+          <p class="text-sm text-slate-400 mt-1">{run.backend} · {run.granularity} · horizon {run.horizon} · history {run.history_points} · forecast {run.forecast_points}</p>
+        </article>
+      ))}
+    </div>
   </section>
 
   <script type="module">
@@ -159,7 +130,11 @@ const defaultPayload = JSON.stringify({
       statusListEl.innerHTML = runs.map((r) => {
         const emoji = r.status === 'completed' ? (r.conclusion === 'success' ? '✅' : '❌') : '⏳';
         const statusText = r.status === 'completed' ? (r.conclusion || 'completed') : (r.status || 'queued');
+        const forecastHref = `/forecasts/${r.slug}`;
         const href = r.html_url || r.actions_url || 'https://github.com/bryanwhiting/weatherman/actions/workflows/forecast-request.yml';
+        if (r.status === 'completed' && r.conclusion === 'success') {
+          return `<div class="rounded border border-slate-700 bg-slate-900/50 p-2 text-xs text-slate-300">✅ <code>${r.slug}</code> — success · Your forecast is ready: <a href="${forecastHref}" class="text-emerald-300 underline">${forecastHref}</a>, or refresh this browser · <a href="${href}" target="_blank" rel="noreferrer" class="text-sky-300 underline">run</a></div>`;
+        }
         return `<div class="rounded border border-slate-700 bg-slate-900/50 p-2 text-xs text-slate-300">${emoji} <code>${r.slug}</code> — ${statusText} · <a href="${href}" target="_blank" rel="noreferrer" class="text-sky-300 underline">open</a></div>`;
       }).join('');
     };
@@ -192,6 +167,9 @@ const defaultPayload = JSON.stringify({
               updated_at: rj.updated_at,
             });
             if (rj.status === 'completed') {
+              if (rj.conclusion === 'success') {
+                statusEl.innerHTML = `✅ Your forecast is ready: <a href="/forecasts/${slug}" class="text-emerald-300 underline">/forecasts/${slug}</a>, or refresh this browser`;
+              }
               clearInterval(timer);
               activeTimers.delete(slug);
             }
