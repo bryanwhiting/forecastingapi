@@ -5,8 +5,6 @@ const { data } = Astro.props;
 const history = data.history ?? [];
 const forecast = data.forecast ?? [];
 const backtest = data.backtest ?? [];
-const models = [...new Set(forecast.map((r) => r.model))];
-const points = [...history.map((r) => ({ ...r, type: 'actual' })), ...forecast.map((r) => ({ ...r, type: 'forecast' }))];
 
 const runTitle = data?.meta?.slug || data.request?.run_name_root || (data.request?.series_names || []).join(', ') || 'series';
 
@@ -21,6 +19,75 @@ const backtestLeaderboard = Object.values(
 )
   .map((r) => ({ model: r.model, avgSmape: r.count ? r.total / r.count : 0, samples: r.count }))
   .sort((a, b) => a.avgSmape - b.avgSmape);
+
+const parseDs = (v) => {
+  const s = String(v ?? '');
+  const normalized = s.includes('T') ? s : s.replace(' ', 'T');
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const points = [
+  ...history.map((r) => ({ ...r, type: 'actual' })),
+  ...forecast.map((r) => ({ ...r, type: 'forecast' })),
+]
+  .map((p) => {
+    const d = parseDs(p.ds);
+    if (!d) return null;
+    return { ...p, iso: d.toISOString() };
+  })
+  .filter(Boolean);
+
+const labels = [...new Set(points.map((p) => p.iso))].sort();
+
+const actualValues = labels.map((l) => {
+  const row = points.find((p) => p.type === 'actual' && p.iso === l);
+  return row ? Number(row.y) : null;
+});
+
+const modelNames = [...new Set(points.filter((p) => p.type === 'forecast').map((p) => p.model))];
+const modelSeries = modelNames.map((model) => ({
+  model,
+  values: labels.map((l) => {
+    const row = points.find((p) => p.type === 'forecast' && p.model === model && p.iso === l);
+    return row ? Number(row.yhat) : null;
+  }),
+}));
+
+const allY = [
+  ...actualValues.filter((v) => Number.isFinite(v)),
+  ...modelSeries.flatMap((s) => s.values.filter((v) => Number.isFinite(v))),
+];
+
+const yMin = allY.length ? Math.min(...allY) : 0;
+const yMax = allY.length ? Math.max(...allY) : 1;
+
+const W = 920;
+const H = 340;
+const PAD = { t: 18, r: 18, b: 40, l: 44 };
+const innerW = W - PAD.l - PAD.r;
+const innerH = H - PAD.t - PAD.b;
+
+const xFor = (i) => PAD.l + (labels.length <= 1 ? 0 : (i / (labels.length - 1)) * innerW);
+const yFor = (v) => {
+  if (!Number.isFinite(v)) return null;
+  const range = yMax - yMin || 1;
+  return PAD.t + (1 - (v - yMin) / range) * innerH;
+};
+
+const toPath = (arr) => {
+  let d = '';
+  arr.forEach((v, i) => {
+    const y = yFor(v);
+    if (y === null) return;
+    const x = xFor(i);
+    d += d ? ` L ${x} ${y}` : `M ${x} ${y}`;
+  });
+  return d;
+};
+
+const actualPath = toPath(actualValues);
+const colors = ['#ef4444', '#22c55e', '#a855f7', '#f97316'];
 ---
 <MainLayout title={`Forecast ${runTitle}`}>
   <Navbar />
@@ -30,7 +97,34 @@ const backtestLeaderboard = Object.values(
 
   <section class="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-4">
     <h2 class="font-semibold mb-2">Actual vs Forecast</h2>
-    <div class="h-[320px] md:h-[420px]"><canvas id="chart" class="w-full h-full"></canvas></div>
+    <div class="overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} class="min-w-[760px] w-full rounded bg-slate-950">
+        <rect x={PAD.l} y={PAD.t} width={innerW} height={innerH} fill="none" stroke="#1e293b" />
+        {Array.from({ length: 5 }).map((_, i) => {
+          const y = PAD.t + (i / 4) * innerH;
+          const val = (yMax - ((i / 4) * (yMax - yMin))).toFixed(1);
+          return (
+            <g>
+              <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="#0f172a" />
+              <text x="6" y={y + 4} font-size="11" fill="#94a3b8">{val}</text>
+            </g>
+          );
+        })}
+
+        {actualPath && <path d={actualPath} fill="none" stroke="#38bdf8" stroke-width="2" />}
+        {modelSeries.map((s, idx) => {
+          const d = toPath(s.values);
+          return d ? <path d={d} fill="none" stroke={colors[idx % colors.length]} stroke-width="2" stroke-dasharray="6 4" /> : null;
+        })}
+      </svg>
+    </div>
+
+    <div class="mt-2 flex flex-wrap gap-3 text-xs text-slate-300">
+      <span class="inline-flex items-center gap-1"><span class="inline-block w-4 h-[2px] bg-sky-400"></span>Actual</span>
+      {modelSeries.map((s, idx) => (
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-4 h-[2px]" style={`background:${colors[idx % colors.length]}`}></span>Forecast ({s.model})</span>
+      ))}
+    </div>
   </section>
 
   {backtest.length > 0 && (
@@ -69,41 +163,4 @@ const backtestLeaderboard = Object.values(
     <summary class="cursor-pointer font-semibold">Payload</summary>
     <pre class="mt-2 overflow-auto rounded bg-slate-950 p-3 text-xs">{JSON.stringify(data.request, null, 2)}</pre>
   </details>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script is:inline define:vars={{ points, models }}>
-    const parseDs = (v) => {
-      const s = String(v ?? '');
-      const normalized = s.includes('T') ? s : s.replace(' ', 'T');
-      const d = new Date(normalized);
-      return Number.isNaN(d.getTime()) ? null : d;
-    };
-
-    const keyed = points.map((p) => {
-      const d = parseDs(p.ds);
-      if (!d) return null;
-      return { ...p, iso: d.toISOString() };
-    }).filter(Boolean);
-
-    const allLabels = [...new Set(keyed.map((p) => p.iso))].sort();
-    const labelFmt = allLabels.map((x) => new Date(x).toLocaleString());
-    const pointMap = new Map(keyed.map((p) => [`${p.iso}|${p.type}|${p.model ?? ''}`, p]));
-
-    const datasets = [{ label: 'Actual', data: allLabels.map((l) => pointMap.get(`${l}|actual|`)?.y ?? null), borderColor: '#38bdf8', spanGaps: true }];
-    const colors = ['#ef4444', '#22c55e', '#a855f7', '#f97316'];
-    models.forEach((m, idx) => {
-      datasets.push({
-        label: `Forecast (${m})`,
-        data: allLabels.map((l) => pointMap.get(`${l}|forecast|${m}`)?.yhat ?? null),
-        borderColor: colors[idx % colors.length],
-        borderDash: [6, 3],
-        spanGaps: true,
-      });
-    });
-
-    const el = document.getElementById('chart');
-    if (el && window.Chart) {
-      new window.Chart(el, { type: 'line', data: { labels: labelFmt, datasets }, options: { responsive: true, maintainAspectRatio: false } });
-    }
-  </script>
 </MainLayout>
