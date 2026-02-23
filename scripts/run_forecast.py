@@ -7,17 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-def _load_index(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _save_index(path: Path, items: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(items, indent=2), encoding="utf-8")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--payload", required=True, help="JSON payload string")
@@ -44,9 +33,9 @@ def main() -> None:
     request_obj.setdefault("compare_algorithms", True)
     request_obj.setdefault("backtest", True)
     request_obj.setdefault("backtest_windows", args.backtest_windows)
+
     request_path = tmp_dir / f"{args.slug}.request.json"
     output_path = root / "site" / "src" / "data" / "forecasts" / f"{args.slug}.json"
-    index_path = root / "site" / "src" / "data" / "forecast-index.json"
 
     request_path.write_text(json.dumps(request_obj, indent=2), encoding="utf-8")
 
@@ -79,25 +68,6 @@ def main() -> None:
         "forecast_points": len(result.get("forecast", [])),
     }
     output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
-
-    index = _load_index(index_path)
-    index = [x for x in index if x.get("slug") != args.slug]
-    index.append(
-        {
-            "slug": args.slug,
-            "title": args.slug,
-            "created_at": run_at,
-            "granularity": result["request"].get("granularity"),
-            "horizon": result["request"].get("horizon"),
-            "history_points": len(result.get("history", [])),
-            "forecast_points": len(result.get("forecast", [])),
-            "backend": result.get("backend", "nixtla"),
-            "run_url": result["meta"]["github"].get("run_url", ""),
-            "path": f"/forecasts/{args.slug}",
-        }
-    )
-    index.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    _save_index(index_path, index)
 
 
 if __name__ == "__main__":

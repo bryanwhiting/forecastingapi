@@ -1,12 +1,24 @@
 ---
-import runs from '../data/forecast-index.json';
 import MainLayout from '../layouts/MainLayout.astro';
 import Navbar from '../components/Navbar.astro';
 
 const forecastModules = import.meta.glob('../data/forecasts/*.json', { eager: true });
-const allBacktests = Object.values(forecastModules)
-  .map((mod: any) => mod.default ?? mod)
-  .flatMap((data: any) => data.backtest ?? []);
+const forecastData = Object.values(forecastModules).map((mod: any) => mod.default ?? mod);
+const runs = forecastData
+  .map((d: any) => ({
+    slug: d?.meta?.slug || d?.request?.run_name_root || 'run',
+    title: d?.meta?.slug || d?.request?.run_name_root || 'run',
+    backend: d?.backend || 'nixtla',
+    granularity: d?.request?.granularity || 'n/a',
+    horizon: d?.request?.horizon ?? 'n/a',
+    history_points: (d?.history || []).length,
+    forecast_points: (d?.forecast || []).length,
+    created_at: d?.meta?.created_at || '',
+    path: `/forecasts/${d?.meta?.slug || d?.request?.run_name_root || 'run'}`,
+  }))
+  .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+
+const allBacktests = forecastData.flatMap((data: any) => data.backtest ?? []);
 
 const leaderboardMap = new Map<string, { total: number; count: number }>();
 for (const row of allBacktests) {

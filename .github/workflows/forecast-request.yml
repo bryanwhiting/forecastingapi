@@ -63,7 +63,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add site/src/data/forecasts site/src/data/forecast-index.json
+          git add site/src/data/forecasts
           git commit -m "Add forecast ${{ inputs.slug }}" || echo "No changes"
           git pull --rebase origin main
           git push
