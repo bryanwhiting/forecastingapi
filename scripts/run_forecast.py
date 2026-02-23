@@ -39,7 +39,7 @@ def main() -> None:
     if args.use_m5:
         request_obj["use_m5"] = True
         request_obj.setdefault("m5_series_count", args.m5_series_count)
-        request_obj.setdefault("series_name", "m5_sample")
+        request_obj.setdefault("series_name", "demo_mode_m5")
         request_obj.setdefault("granularity", "1d")
     request_obj.setdefault("compare_algorithms", True)
     request_obj.setdefault("backtest", True)

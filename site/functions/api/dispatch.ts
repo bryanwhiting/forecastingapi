@@ -52,9 +52,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
-    const runNameRaw = String(body.run_name || body.slug || '').trim();
+    const payloadObj = typeof body.payload === 'string' ? JSON.parse(body.payload || '{}') : (body.payload || {});
+    const runNameRaw = String(body.run_name_root || payloadObj.run_name_root || '').trim();
     if (!runNameRaw) {
-      return new Response(JSON.stringify({ error: 'forecast run name is required' }), {
+      return new Response(JSON.stringify({ error: 'payload.run_name_root is required' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      });
+    }
+
+    const useM5 = Boolean(body.use_m5);
+    if (useM5) {
+      payloadObj.series_name = 'demo_mode_m5';
+    } else if (String(payloadObj.series_name || '').trim() === 'demo_mode_m5') {
+      return new Response(JSON.stringify({ error: 'series_name "demo_mode_m5" is reserved for demo mode' }), {
         status: 400,
         headers: JSON_HEADERS,
       });
@@ -75,9 +86,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         ref: 'main',
         inputs: {
           slug,
-          use_m5: String(Boolean(body.use_m5)),
+          use_m5: String(useM5),
           m5_series_count: String(body.m5_series_count ?? 3),
-          payload: typeof body.payload === 'string' ? body.payload : JSON.stringify(body.payload || {}),
+          payload: JSON.stringify(payloadObj),
           backtest_windows: String(body.backtest_windows ?? 3),
         },
       }),

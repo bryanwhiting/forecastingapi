@@ -30,6 +30,7 @@ const defaultPayload = JSON.stringify({
   series_name: 'demo_hourly',
   horizon: 24,
   model: 'nixtla',
+  run_name_root: 'my-forecast-run',
   backtest_windows: 3,
   series: [100, 102, 99, 101, 103, 104, 106, 108, 110, 111, 113, 116],
 }, null, 2);
@@ -129,11 +130,6 @@ const version = `v0.${ymdhms}-${gitHash}`;
         <p class="muted">This sends a <code>workflow_dispatch</code> POST to GitHub Actions for <code>forecast-request.yml</code>.</p>
         <div class="form-grid">
           <div>
-            <label for="run_name">Forecast run name</label>
-            <input id="run_name" placeholder="my-forecast-run" />
-          </div>
-
-          <div>
             <label>Supply a payload, or run a test</label>
             <div class="tabs">
               <button type="button" class="tab active" id="tab-payload">Supply payload</button>
@@ -155,6 +151,7 @@ const version = `v0.${ymdhms}-${gitHash}`;
                 Time series values are assumed to be <strong>continuous with no gaps</strong> from the provided start datetime.
                 The system auto-generates timestamps at the selected granularity (1h, 1d, etc.) for each point in order.
                 Example: if you send 100 values starting at Jan 1, it creates 100 sequential timestamps, then forecasts after the last one.
+                Also include <code>run_name_root</code> in payload (used to generate the run slug). <code>series_name: "demo_mode_m5"</code> is reserved for demo mode.
               </div>
             </details>
             <textarea id="payload">{defaultPayload}</textarea>
@@ -231,7 +228,7 @@ const version = `v0.${ymdhms}-${gitHash}`;
 
         if (useM5) {
           customPayloadCache = payloadInput.value;
-          payloadInput.value = JSON.stringify({ demo_mode_m5: true }, null, 2);
+          payloadInput.value = JSON.stringify({ run_name_root: 'demo-m5-test', series_name: 'demo_mode_m5', backtest_windows: 3 }, null, 2);
           payloadInput.readOnly = true;
           payloadInput.style.opacity = '0.55';
         } else {
@@ -249,17 +246,17 @@ const version = `v0.${ymdhms}-${gitHash}`;
           statusEl.textContent = 'Submitting...';
           btn.disabled = true;
 
-          const runName = document.getElementById('run_name').value.trim();
           const use_m5 = document.getElementById('use_m5').value === 'true';
           const m5_series_count = document.getElementById('m5_series_count').value;
           const payloadRaw = document.getElementById('payload').value;
 
-          if (!runName) throw new Error('forecast run name is required');
           const parsedPayload = JSON.parse(payloadRaw || '{}'); // validate + inspect
+          const runNameRoot = String(parsedPayload?.run_name_root || '').trim();
+          if (!runNameRoot) throw new Error('payload.run_name_root is required');
 
           const body = {
             repo: 'bryanwhiting/weatherman',
-            run_name: runName,
+            run_name_root: runNameRoot,
             use_m5,
             m5_series_count: Number(m5_series_count),
             payload: payloadRaw,

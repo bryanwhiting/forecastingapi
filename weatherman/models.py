@@ -28,6 +28,11 @@ class ForecastRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_source(self) -> "ForecastRequest":
-        if not self.use_m5 and len(self.series) < 10:
-            raise ValueError("series must contain at least 10 points when use_m5=false")
+        if self.use_m5:
+            self.series_name = "demo_mode_m5"
+        else:
+            if self.series_name == "demo_mode_m5":
+                raise ValueError('series_name "demo_mode_m5" is reserved for demo mode')
+            if len(self.series) < 10:
+                raise ValueError("series must contain at least 10 points when use_m5=false")
         return self
