@@ -85,7 +85,7 @@ In Cloudflare Pages project (`weatherman`) → Settings → Environment variable
 ### 5) Enable workflows
 Workflows used:
 - `Forecast Request` (build artifacts + commit + deploy)
-- `Deploy Astro site to GitHub Pages` (optional if you keep GH Pages as mirror)
+- `Forecast Request` (builds + deploys to Cloudflare Pages)
 
 ### 6) Trigger a forecast
 Use app UI or run workflow dispatch with payload.
