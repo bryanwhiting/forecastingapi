@@ -6,3 +6,4 @@ __pycache__/
 .tmp/
 site/node_modules/
 site/dist/
+site/.astro/

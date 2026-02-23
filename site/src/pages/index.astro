@@ -1,3 +1,50 @@
 ---
+import runs from '../data/forecast-index.json';
 ---
-<html><body><h1>Weatherman Forecasts</h1><p>Open /forecasts/&lt;slug&gt;.</p></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weatherman</title>
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; margin: 0; background: #0b1020; color: #e6edf7; }
+      main { max-width: 980px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+      h1 { margin: 0; font-size: 2rem; }
+      .sub { color: #a3b3d1; margin-top: .5rem; }
+      .grid { margin-top: 1.5rem; display: grid; gap: .9rem; }
+      .card { background: #141b31; border: 1px solid #273255; border-radius: 12px; padding: 1rem; }
+      .card h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+      .meta { color: #9db0d4; font-size: .9rem; display: flex; gap: .75rem; flex-wrap: wrap; }
+      a { color: #8cc0ff; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .empty { margin-top: 2rem; color: #9db0d4; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Weatherman</h1>
+      <p class="sub">Forecast requests submitted via GitHub Actions. Click any run for the full HTML report.</p>
+
+      {runs.length === 0 ? (
+        <p class="empty">No forecast runs yet.</p>
+      ) : (
+        <section class="grid">
+          {runs.map((run) => (
+            <article class="card">
+              <h2><a href={run.path}>{run.title}</a></h2>
+              <div class="meta">
+                <span>Backend: {run.backend}</span>
+                <span>Granularity: {run.granularity}</span>
+                <span>Horizon: {run.horizon}</span>
+                <span>History: {run.history_points}</span>
+                <span>Forecast: {run.forecast_points}</span>
+                <span>{new Date(run.created_at).toLocaleString()}</span>
+                {run.run_url && <a href={run.run_url} target="_blank" rel="noreferrer">GitHub run ↗</a>}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </main>
+  </body>
+</html>

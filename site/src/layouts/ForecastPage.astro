@@ -19,6 +19,7 @@ const points = [...history.map((r) => ({...r, type:'actual'})), ...forecast.map(
   <body>
     <h1>Forecast: {data.request.series_name}</h1>
     <p class="meta">Backend: {data.backend} · Granularity: {data.request.granularity} · Horizon: {data.request.horizon}</p>
+    {data?.meta?.github?.run_url && <p class="meta"><a href={data.meta.github.run_url} target="_blank" rel="noreferrer">GitHub action run ↗</a></p>}
     <canvas id="chart"></canvas>
 
     <h2>Request</h2>

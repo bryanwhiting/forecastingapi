@@ -1,39 +1,43 @@
 # Weatherman
 
-Weatherman is an open-source forecasting package that provides a single interface over Nixtla and AutoGluon tooling.
+Weatherman is an open-source forecasting project with **two separate parts in one repo**:
 
-## Core idea
+- `weatherman/` → Python forecasting library (Nixtla StatsForecast first)
+- `site/` → Astro website for landing page + per-run HTML reports
 
-You submit:
-- `start_datetime` (first timestamp)
+## Architecture
+
+### 1) Python forecasting package (`weatherman/`)
+Input payload stays small:
+- `start_datetime` (first point timestamp)
 - `granularity` (`15m`, `1h`, `1d`, ...)
 - `series` (numeric values only)
+- `horizon`
 
-Weatherman generates a continuous datetime index with no gaps, maps each value to that index, and forecasts after the last observed point.
+The library builds a continuous datetime index (no gaps), maps values to generated dates, trains models, and forecasts future points.
 
-## Install
+Initial backend: **Nixtla StatsForecast** (AutoARIMA + ETS).
 
-```bash
-pip install -e .
-# optional AutoGluon backend
-pip install -e '.[autogluon]'
-```
+### 2) Astro website (`site/`)
+- Landing page (`/`) lists all submitted forecast requests from `site/src/data/forecast-index.json`
+- Report page (`/forecasts/[slug]`) renders each run from `site/src/data/forecasts/<slug>.json`
+- Report shows actual vs forecast chart (Chart.js) + run metadata
 
-## Run locally
+## GitHub Actions submission flow
 
-```bash
-python -m weatherman.cli \
-  --input workflows/example_payload.json \
-  --output site/src/data/forecasts/demo.json
-```
+Run workflow: **Forecast Request** (`workflow_dispatch`) with:
+- `slug`
+- `payload` (JSON)
 
-## GitHub Actions API
+The action:
+1. Runs Python forecast generation
+2. Writes `site/src/data/forecasts/<slug>.json`
+3. Updates `site/src/data/forecast-index.json`
+4. Commits and pushes
 
-Use **Actions → Forecast Request → Run workflow** and pass:
-- `slug`: output page slug
-- `payload`: JSON blob
+Astro then builds static pages from those artifacts.
 
-Example payload:
+## Example payload
 
 ```json
 {
@@ -42,22 +46,23 @@ Example payload:
   "series_name": "demo_hourly",
   "horizon": 24,
   "model": "nixtla",
-  "series": [100, 102, 99, 101]
+  "series": [100, 102, 99, 101, 103, 104, 106, 108, 110, 111]
 }
 ```
 
-The workflow writes:
-- `site/src/data/forecasts/<slug>.json`
-- `site/src/pages/forecasts/<slug>.astro`
+## Local usage
 
-Then commits to `main`.
+### Python
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+python -m weatherman.cli --input workflows/example_payload.json --output site/src/data/forecasts/demo.json
+```
 
-## Astro site
-
+### Site
 ```bash
 cd site
 npm install
 npm run build
 ```
-
-Forecast page shows actual vs predicted values using Chart.js.

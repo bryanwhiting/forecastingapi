@@ -1,0 +1,17 @@
+---
+import ForecastPage from '../../layouts/ForecastPage.astro';
+
+export async function getStaticPaths() {
+  const modules = import.meta.glob('../../data/forecasts/*.json', { eager: true });
+  return Object.entries(modules).map(([path, mod]) => {
+    const slug = path.split('/').pop().replace('.json', '');
+    return {
+      params: { slug },
+      props: { data: mod.default ?? mod }
+    };
+  });
+}
+
+const { data } = Astro.props;
+---
+<ForecastPage data={data} />

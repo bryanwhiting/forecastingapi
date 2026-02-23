@@ -30,13 +30,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install .
 
-      - name: Generate forecast and Astro page
-        run: python scripts/run_forecast.py --slug "${{ inputs.slug }}" --payload '${{ inputs.payload }}'
+      - name: Generate forecast artifacts
+        run: |
+          python scripts/run_forecast.py \
+            --slug "${{ inputs.slug }}" \
+            --payload '${{ inputs.payload }}' \
+            --repo "${{ github.repository }}" \
+            --run-id "${{ github.run_id }}" \
+            --actor "${{ github.actor }}" \
+            --sha "${{ github.sha }}"
 
       - name: Commit output
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add site/src/pages/forecasts site/src/data/forecasts
+          git add site/src/data/forecasts site/src/data/forecast-index.json
           git commit -m "Add forecast ${{ inputs.slug }}" || echo "No changes"
           git push
