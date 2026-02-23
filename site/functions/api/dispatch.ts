@@ -10,6 +10,25 @@ const JSON_HEADERS = {
   'access-control-allow-headers': 'content-type',
 };
 
+const sanitizeSlug = (input: string): string =>
+  input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+const timestampPrefix = (): string => {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mi = String(d.getUTCMinutes()).padStart(2, '0');
+  const ss = String(d.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+};
+
 export const onRequestOptions = async () => {
   return new Response(null, { status: 204, headers: JSON_HEADERS });
 };
@@ -33,13 +52,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
-    const slug = String(body.slug || '').trim();
-    if (!slug) {
-      return new Response(JSON.stringify({ error: 'slug is required' }), {
+    const runNameRaw = String(body.run_name || body.slug || '').trim();
+    if (!runNameRaw) {
+      return new Response(JSON.stringify({ error: 'forecast run name is required' }), {
         status: 400,
         headers: JSON_HEADERS,
       });
     }
+
+    const cleanName = sanitizeSlug(runNameRaw) || 'forecast';
+    const slug = `${timestampPrefix()}-${cleanName}`;
 
     const ghRes = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/forecast-request.yml/dispatches`, {
       method: 'POST',
@@ -69,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, message: 'Workflow dispatched' }), {
+    return new Response(JSON.stringify({ ok: true, message: 'Workflow dispatched', slug }), {
       status: 200,
       headers: JSON_HEADERS,
     });

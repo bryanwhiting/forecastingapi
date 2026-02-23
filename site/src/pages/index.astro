@@ -96,8 +96,8 @@ const defaultPayload = JSON.stringify({
         <p class="muted">This sends a <code>workflow_dispatch</code> POST to GitHub Actions for <code>forecast-request.yml</code>.</p>
         <div class="form-grid">
           <div>
-            <label for="slug">Slug</label>
-            <input id="slug" placeholder="my-forecast-run" />
+            <label for="run_name">Forecast run name</label>
+            <input id="run_name" placeholder="my-forecast-run" />
           </div>
 
           <div>
@@ -203,18 +203,18 @@ const defaultPayload = JSON.stringify({
           statusEl.textContent = 'Submitting...';
           btn.disabled = true;
 
-          const slug = document.getElementById('slug').value.trim();
+          const runName = document.getElementById('run_name').value.trim();
           const use_m5 = document.getElementById('use_m5').value === 'true';
           const m5_series_count = document.getElementById('m5_series_count').value;
           const backtest_windows = document.getElementById('backtest_windows').value;
           const payloadRaw = document.getElementById('payload').value;
 
-          if (!slug) throw new Error('slug is required');
+          if (!runName) throw new Error('forecast run name is required');
           if (!use_m5) JSON.parse(payloadRaw); // validate only when payload mode
 
           const body = {
             repo: 'bryanwhiting/weatherman',
-            slug,
+            run_name: runName,
             use_m5,
             m5_series_count: Number(m5_series_count),
             payload: use_m5 ? '{}' : payloadRaw,
@@ -232,7 +232,7 @@ const defaultPayload = JSON.stringify({
             throw new Error(json?.error || `Request failed (${res.status})`);
           }
 
-          statusEl.textContent = '✅ Dispatched. Check Actions tab for progress.';
+          statusEl.textContent = `✅ Dispatched as ${json?.slug || 'run'}. Check Actions tab for progress.`;
         } catch (err) {
           statusEl.textContent = `❌ ${err.message}`;
         } finally {
