@@ -63,6 +63,9 @@ const defaultPayload = JSON.stringify({
       .tabs { display: flex; gap: .5rem; margin-top: .2rem; }
       .tab { flex: 1; border: 1px solid #2c3a61; background: #0f1730; color: #cfe0ff; border-radius: 10px; padding: .6rem .7rem; text-align: center; cursor: pointer; }
       .tab.active { background: #1c2a4d; border-color: #4a65a1; color: #fff; font-weight: 600; }
+      .instructions { margin: .35rem 0 .15rem; }
+      .instructions > summary { cursor: pointer; color: #8cc0ff; font-size: .85rem; }
+      .instructions-body { margin-top: .45rem; border: 1px solid #2c3a61; background: #0f1730; border-radius: 10px; padding: .65rem .75rem; color: #cfe0ff; font-size: .84rem; line-height: 1.35; }
       label { font-size: .85rem; color: #b7c5e2; display: block; margin-bottom: .2rem; }
       input, textarea, select { width: 100%; max-width: 100%; border: 1px solid #2c3a61; background: #0f1730; color: #eaf1ff; border-radius: 10px; padding: .62rem .7rem; font: inherit; }
       textarea { min-height: 150px; line-height: 1.35; overflow-wrap: anywhere; }
@@ -121,6 +124,14 @@ const defaultPayload = JSON.stringify({
 
           <div>
             <label for="payload">Payload JSON</label>
+            <details class="instructions">
+              <summary>Instructions</summary>
+              <div class="instructions-body">
+                Time series values are assumed to be <strong>continuous with no gaps</strong> from the provided start datetime.
+                The system auto-generates timestamps at the selected granularity (1h, 1d, etc.) for each point in order.
+                Example: if you send 100 values starting at Jan 1, it creates 100 sequential timestamps, then forecasts after the last one.
+              </div>
+            </details>
             <textarea id="payload">{defaultPayload}</textarea>
           </div>
 
