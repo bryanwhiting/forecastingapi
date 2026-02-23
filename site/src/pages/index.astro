@@ -35,6 +35,13 @@ const defaultPayload = JSON.stringify({
 ---
 <MainLayout title="ForecastingAPI.com">
   <Navbar />
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div id="weather-parallax" class="absolute inset-0 opacity-40">
+      <svg id="weather-svg" class="h-full w-full"></svg>
+    </div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(56,189,248,0.08),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(99,102,241,0.09),transparent_35%),linear-gradient(to_bottom,rgba(2,6,23,0.65),rgba(2,6,23,0.95))]"></div>
+  </div>
+
 
   <section class="relative mt-5 overflow-hidden rounded-2xl border border-slate-700/80 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-6 md:p-8">
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(56,189,248,0.15),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(99,102,241,0.15),transparent_30%)]"></div>
@@ -53,7 +60,7 @@ const defaultPayload = JSON.stringify({
   <section class="mt-5 relative">
     <div class="hidden md:block absolute left-[16.66%] right-[16.66%] top-7 h-px bg-gradient-to-r from-sky-500/20 via-violet-400/60 to-emerald-400/20"></div>
     <div class="grid gap-4 md:grid-cols-3">
-      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-sky-400/60 transition">
+      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_0_1px_rgba(56,189,248,0.06),0_14px_40px_rgba(2,6,23,0.45)] hover:border-sky-400/60 transition">
         <div class="flex items-center gap-3">
           <div class="h-8 w-8 rounded-full bg-sky-500/20 border border-sky-400/50 text-sky-300 text-sm font-bold grid place-items-center">1</div>
           <h3 class="font-semibold tracking-wide">Ingest</h3>
@@ -61,7 +68,7 @@ const defaultPayload = JSON.stringify({
         <p class="mt-3 text-sm text-slate-300">Paste one payload with multi-series data. Keep it compact and deterministic.</p>
       </article>
 
-      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-violet-400/60 transition">
+      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_0_1px_rgba(56,189,248,0.06),0_14px_40px_rgba(2,6,23,0.45)] hover:border-violet-400/60 transition">
         <div class="flex items-center gap-3">
           <div class="h-8 w-8 rounded-full bg-violet-500/20 border border-violet-400/50 text-violet-300 text-sm font-bold grid place-items-center">2</div>
           <h3 class="font-semibold tracking-wide">Evaluate</h3>
@@ -69,7 +76,7 @@ const defaultPayload = JSON.stringify({
         <p class="mt-3 text-sm text-slate-300">Run rolling backtests with AutoARIMA + AutoETS, then compare SMAPE by model/window.</p>
       </article>
 
-      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-emerald-400/60 transition">
+      <article class="group rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_0_1px_rgba(56,189,248,0.06),0_14px_40px_rgba(2,6,23,0.45)] hover:border-emerald-400/60 transition">
         <div class="flex items-center gap-3">
           <div class="h-8 w-8 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-sm font-bold grid place-items-center">3</div>
           <h3 class="font-semibold tracking-wide">Ship</h3>
@@ -79,7 +86,7 @@ const defaultPayload = JSON.stringify({
     </div>
   </section>
 
-  <section id="payload-form" class="mt-5 rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-6">
+  <section id="payload-form" class="mt-5 rounded-2xl border border-slate-600/80 bg-slate-900/75 p-4 md:p-6 shadow-[0_16px_50px_rgba(2,6,23,0.45),0_0_0_1px_rgba(56,189,248,0.08)]">
     <h2 class="text-2xl font-semibold">Enter Payload, get Forecasts</h2>
     <p class="mt-1 text-sm text-slate-300">Supply your own payload, or use our M5 demo</p>
 
@@ -135,12 +142,12 @@ const defaultPayload = JSON.stringify({
     </div>
   </section>
 
-  <section class="mt-5 rounded-2xl border border-slate-700 bg-slate-900/70 p-4 md:p-6">
+  <section class="mt-5 rounded-2xl border border-slate-600/80 bg-slate-900/75 p-4 md:p-6 shadow-[0_16px_50px_rgba(2,6,23,0.45),0_0_0_1px_rgba(99,102,241,0.08)]">
     <h2 class="text-xl font-semibold">All Runs</h2>
     <p class="mt-1 text-sm text-slate-300">Most recent forecast outputs available right now.</p>
     <div class="mt-4 grid gap-3 md:grid-cols-2">
       {runs.map((run) => (
-        <article class="rounded-xl border border-slate-700 bg-slate-900/50 p-4 transition hover:border-sky-500/50">
+        <article class="rounded-xl border border-slate-700 bg-slate-900/50 p-4 transition hover:border-sky-500/60 hover:shadow-[0_0_0_1px_rgba(56,189,248,0.18),0_18px_40px_rgba(2,6,23,0.45)]">
           <h3 class="font-semibold text-sky-300"><a href={run.path}>{run.slug}</a></h3>
           <p class="mt-1 text-xs text-slate-400">{run.backend} · {run.granularity} · horizon {run.horizon}</p>
           <p class="text-xs text-slate-400">history {run.history_points} · forecast {run.forecast_points}</p>
@@ -148,6 +155,92 @@ const defaultPayload = JSON.stringify({
       ))}
     </div>
   </section>
+
+  <script type="module">
+    import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+
+    const svg = d3.select('#weather-svg');
+    if (!svg.empty()) {
+      const render = () => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        svg.attr('viewBox', `0 0 ${w} ${h}`);
+        svg.selectAll('*').remove();
+
+        const gBack = svg.append('g').attr('id', 'layer-back');
+        const gMid = svg.append('g').attr('id', 'layer-mid');
+        const gFront = svg.append('g').attr('id', 'layer-front');
+
+        // Soft cloud nodes
+        const cloudData = d3.range(26).map((i) => ({
+          x: (i / 25) * w,
+          y: 70 + (Math.sin(i * 0.9) * 24) + (i % 3) * 16,
+          r: 26 + (i % 5) * 9,
+        }));
+
+        gBack.selectAll('circle')
+          .data(cloudData)
+          .enter()
+          .append('circle')
+          .attr('cx', (d) => d.x)
+          .attr('cy', (d) => d.y)
+          .attr('r', (d) => d.r)
+          .attr('fill', 'rgba(125,211,252,0.08)');
+
+        // Isobar-like weather contours
+        const lineGen = d3.line().curve(d3.curveBasis);
+        const contours = d3.range(5).map((k) =>
+          d3.range(0, 13).map((i) => [
+            (i / 12) * w,
+            130 + k * 70 + Math.sin(i * 1.2 + k * 0.75) * 24,
+          ])
+        );
+
+        gMid.selectAll('path')
+          .data(contours)
+          .enter()
+          .append('path')
+          .attr('d', (d) => lineGen(d))
+          .attr('fill', 'none')
+          .attr('stroke', (d, i) => i % 2 ? 'rgba(167,139,250,0.18)' : 'rgba(56,189,248,0.2)')
+          .attr('stroke-width', 1.3);
+
+        // Rain streak accents
+        const rain = d3.range(Math.max(24, Math.floor(w / 60))).map((i) => ({
+          x: ((i + 0.5) / Math.max(24, Math.floor(w / 60))) * w,
+          y: 240 + (i % 7) * 35,
+          l: 18 + (i % 4) * 6,
+        }));
+
+        gFront.selectAll('line')
+          .data(rain)
+          .enter()
+          .append('line')
+          .attr('x1', (d) => d.x)
+          .attr('y1', (d) => d.y)
+          .attr('x2', (d) => d.x - 8)
+          .attr('y2', (d) => d.y + d.l)
+          .attr('stroke', 'rgba(125,211,252,0.16)')
+          .attr('stroke-width', 1.2)
+          .attr('stroke-linecap', 'round');
+      };
+
+      const parallax = () => {
+        const y = window.scrollY || 0;
+        const back = document.getElementById('layer-back');
+        const mid = document.getElementById('layer-mid');
+        const front = document.getElementById('layer-front');
+        if (back) back.setAttribute('transform', `translate(0, ${y * 0.04})`);
+        if (mid) mid.setAttribute('transform', `translate(0, ${y * 0.08})`);
+        if (front) front.setAttribute('transform', `translate(0, ${y * 0.14})`);
+      };
+
+      render();
+      parallax();
+      window.addEventListener('resize', render, { passive: true });
+      window.addEventListener('scroll', parallax, { passive: true });
+    }
+  </script>
 
   <script type="module">
     const statusEl = document.getElementById('status');
