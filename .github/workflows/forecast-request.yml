@@ -86,6 +86,27 @@ jobs:
             sleep $((RANDOM % 5 + 2))
           done
 
+      - name: Setup Node for site build
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build Astro site
+        working-directory: site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: site
+          command: pages deploy dist --project-name forecastingapi --branch main
+
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
