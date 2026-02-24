@@ -1,7 +1,10 @@
 name: Forecast Request
-run-name: Forecast • ${{ inputs.slug }}
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Forecast • {0}', inputs.slug) || format('Deploy • {0}', github.sha) }}
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       slug:
@@ -31,6 +34,7 @@ permissions:
 
 jobs:
   forecast:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -81,6 +85,16 @@ jobs:
             fi
             sleep $((RANDOM % 5 + 2))
           done
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node for site build
         uses: actions/setup-node@v4
