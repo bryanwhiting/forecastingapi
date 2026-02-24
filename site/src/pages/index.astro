@@ -100,6 +100,15 @@ const defaultPayload = JSON.stringify({
     .run-dot.in-progress { background: rgb(56,189,248); }
     .run-dot.success { background: rgb(34,197,94); }
     .run-dot.failure { background: rgb(239,68,68); }
+    /* Defensive: if old cached JS injects SVG icons, keep them tiny */
+    #status svg, #status-list svg {
+      width: 14px !important;
+      height: 14px !important;
+      max-width: 14px !important;
+      max-height: 14px !important;
+      display: inline-block !important;
+      vertical-align: -2px !important;
+    }
 
     @keyframes cardFloat {
       0%, 100% { transform: translateY(0px); }
